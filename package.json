@@ -1,0 +1,10 @@
+{
+  "name": "com.jack.jecs",
+  "displayName": "JECS",
+  "description": "ECS framework for logic",
+  "version": "1.0.0",
+  "unity": "2018.3",
+  "license": "MIT",
+  "dependencies": {
+  }
+}
