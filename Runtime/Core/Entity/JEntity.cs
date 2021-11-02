@@ -2,7 +2,7 @@ namespace JECS.Core
 {
     public class JEntity
     {
-        internal int OwnerArchetypeUID = -1;
+        internal int OwnerArchetypeUid = -1;
 
         /// <summary>
         /// 实体唯一id
@@ -17,36 +17,45 @@ namespace JECS.Core
         /// <summary>
         /// 实体内部组件数组
         /// </summary>
-        private JComp[] __comps;
+        private readonly JComp[] _comps;
 
         public JEntity(int compNum)
         {
-            __comps = new JComp[compNum];
+            _comps = new JComp[compNum];
         }
 
+        /// <summary>
+        /// 由当前实体获取组件
+        /// </summary>
         public JComp GetC(int compId)
         {
-            return __comps[compId];
+            return _comps[compId];
         }
 
+        /// <summary>
+        /// 当前实体添加组件
+        /// </summary>
         public JComp AddC(JWorld w, int compId)
         {
             // 实际添加组件时，原型管理更新
             if (__RealAddComp(w, compId)) w.ArchetypeMgr.OnEChange(this);
-            return __comps[compId];
+            return _comps[compId];
         }
 
-        #region Add Components
-
+        /// <summary>
+        /// 实际添加组件函数，执行具体的组件生成与绑定，并返回添加成功标识符
+        /// </summary>
         private bool __RealAddComp(JWorld w, int comp)
         {
             if (!Archetype.Add(comp)) return false;
 
             JComp newC = w.SpawnC(comp, UID);
-            __comps[comp] = newC;
-            w.logMgr.AddComponent(UID, comp);
+            _comps[comp] = newC;
+            w.LogMgr.AddComponent(UID, comp);
             return true;
         }
+
+        #region 快捷方法 - 批量添加组件
 
         public void AddCs(JWorld w, int comp1)
         {
@@ -146,68 +155,85 @@ namespace JECS.Core
 
         #endregion
 
-        public void RelinkC(JWorld w, int compId)
-        {
-            if (!Archetype.Add(compId)) return;
-            w.ArchetypeMgr.OnEChange(this);
-        }
-
+        /// <summary>
+        /// 实体与指定类型组件脱钩，若实体不包含该组件则不发生任何行为
+        /// </summary>
         public void UnlinkC(JWorld w, int compId)
         {
             if (!Archetype.Del(compId)) return;
             w.ArchetypeMgr.OnEChange(this);
         }
 
+        /// <summary>
+        /// 实体与指定类型组件重新挂钩，若实体内部不包含该组件则添加
+        /// </summary>
+        public void RelinkC(JWorld w, int compId)
+        {
+            if (!Archetype.Add(compId)) return;
+            if (_comps[compId] == null) __RealAddComp(w, compId);
+            w.ArchetypeMgr.OnEChange(this);
+        }
+
+        /// <summary>
+        /// 删除实体指定组件，并返回成功删除标识
+        /// </summary>
         public bool DelC(JWorld w, int compId)
         {
             if (!Archetype.Del(compId)) return false;
 
-            w.ReleaseC(__comps[compId]);
-            __comps[compId] = null;
+            w.ReleaseC(_comps[compId]);
+            _comps[compId] = null;
             w.ArchetypeMgr.OnEChange(this);
-            w.logMgr.DelComponent(UID, compId);
+            w.LogMgr.DelComponent(UID, compId);
             return true;
         }
 
-        public void OnDel(JWorld w)
+        /// <summary>
+        /// 实体删除时调用
+        /// </summary>
+        internal void OnDel(JWorld w)
         {
+            // 原型内删除该实体引用
             w.ArchetypeMgr.OnEDel(this);
 
-            for (int i = 0, imax = __comps.Length; i < imax; i++)
+            // 释放组件资源
+            for (int i = 0, imax = _comps.Length; i < imax; i++)
             {
-                var comp = __comps[i];
-                if (comp == null)
-                    continue;
+                var comp = _comps[i];
+                if (comp == null) continue;
 
-                w.logMgr.DelComponent(UID, comp.CompId);
+                w.LogMgr.DelComponent(UID, comp.CompId);
                 w.ReleaseC(comp);
-                __comps[i] = null;
+                _comps[i] = null;
             }
 
-            OwnerArchetypeUID = -1;
+            // 通知ECS内部log系统删除实体，并清空实体内容
+            w.LogMgr.DelEntity(UID);
+            OwnerArchetypeUid = -1;
             UID = -1;
             Archetype.Clear();
         }
 
         /// <summary>
-        /// 实体内部资源释放
+        /// 实体内部资源释放与清空
         /// </summary>
-        internal void OnRelease(JWorld w)
+        internal void OnClear(JWorld w)
         {
             // 清空内部id信息
-            OwnerArchetypeUID = -1;
+            OwnerArchetypeUid = -1;
             UID = -1;
 
             // 清空原型
             Archetype.Clear();
 
             // 释放组件
-            for (int i = 0, imax = __comps.Length; i < imax; i++)
+            for (int i = 0, imax = _comps.Length; i < imax; i++)
             {
-                var comp = __comps[i];
+                var comp = _comps[i];
                 if (comp == null) continue;
+                
                 w.ReleaseC(comp);
-                __comps[i] = null;
+                _comps[i] = null;
             }
         }
 

@@ -10,20 +10,20 @@ namespace JECS.Core
 
         public abstract int CompId { get; }
 
-        internal void OnLoad(JWorld w, int uid)
+        internal void InternalOnLoad(JWorld w, int uid)
         {
             UID = uid;
-            _BasicOnLoad(w);
+            OnLoad(w);
         }
 
-        protected abstract void _BasicOnLoad(JWorld w);
+        protected abstract void OnLoad(JWorld w);
 
-        internal void OnRelease(JWorld w)
+        internal void InternalOnClear(JWorld w)
         {
             UID = -1;
-            _BasicOnRelease(w);
+            OnClear(w);
         }
 
-        protected abstract void _BasicOnRelease(JWorld w);
+        protected abstract void OnClear(JWorld w);
     }
 }

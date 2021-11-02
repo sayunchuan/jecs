@@ -1,10 +1,13 @@
 namespace JECS.Core
 {
+    /// <summary>
+    /// ECS内部消息
+    /// </summary>
     public class JLogMsg
     {
         public int UID { get; private set; }
-        public JLogMsgType msgType { get; private set; }
-        public int compId { get; private set; }
+        public JLogMsgType MsgType { get; private set; }
+        public int CompId { get; private set; }
 
         public void Clean()
         {
@@ -14,27 +17,27 @@ namespace JECS.Core
         public void AddEntity(int UID)
         {
             this.UID = UID;
-            msgType = JLogMsgType.EntityAdd;
+            MsgType = JLogMsgType.EntityAdd;
         }
 
         public void DelEntity(int UID)
         {
             this.UID = UID;
-            msgType = JLogMsgType.EntityDel;
+            MsgType = JLogMsgType.EntityDel;
         }
 
         public void AddComponent(int UID, int compId)
         {
             this.UID = UID;
-            msgType = JLogMsgType.ComponentAdd;
-            this.compId = compId;
+            MsgType = JLogMsgType.ComponentAdd;
+            CompId = compId;
         }
 
         public void DelComponent(int UID, int compId)
         {
             this.UID = UID;
-            msgType = JLogMsgType.ComponentDel;
-            this.compId = compId;
+            MsgType = JLogMsgType.ComponentDel;
+            CompId = compId;
         }
     }
 }

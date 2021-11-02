@@ -3,6 +3,9 @@ using System.Text;
 
 namespace JECS
 {
+    /// <summary>
+    /// Stringbuidler池
+    /// </summary>
     public static class StringBuilderPool
     {
         private static Queue<StringBuilder> __pool = new Queue<StringBuilder>();

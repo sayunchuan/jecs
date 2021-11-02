@@ -5,12 +5,12 @@ namespace JECS.Core
         /// <summary>
         /// 脏数据标记位，实体引用列表发生变化时设置
         /// </summary>
-        private bool __dirty;
+        private bool _dirty;
 
         /// <summary>
         /// 原型唯一ID
         /// </summary>
-        internal int ArchetypeUID;
+        internal int ArchetypeUid;
 
         /// <summary>
         /// 原型bit数据
@@ -24,13 +24,16 @@ namespace JECS.Core
 
         internal Archetype()
         {
-            Reset();
+            Clear();
         }
 
-        public void Reset()
+        /// <summary>
+        /// 重置原型数据，清空内部的实体引用列表，并清除原型类型
+        /// </summary>
+        internal void Clear()
         {
-            __dirty = false;
-            ArchetypeUID = -1;
+            _dirty = false;
+            ArchetypeUid = -1;
             Type.Clear();
             EntityRefs.Clear();
         }
@@ -40,11 +43,10 @@ namespace JECS.Core
         /// </summary>
         internal void ExeDirty()
         {
-            if (!__dirty)
-            {
-                return;
-            }
+            // 无脏则略过
+            if (!_dirty) return;
 
+            // 对实体引用列表倒序遍历，移除空节点，此处需注意Remove传入参数的正确性
             int end = -1;
             for (int i = EntityRefs.Count - 1; i >= 0; i--)
             {
@@ -69,7 +71,7 @@ namespace JECS.Core
                 EntityRefs.Remove(0, end);
             }
 
-            __dirty = false;
+            _dirty = false;
         }
 
         /// <summary>
@@ -79,8 +81,8 @@ namespace JECS.Core
         internal void AddEntity(JEntity e)
         {
             EntityRefs.Add(e);
-            e.OwnerArchetypeUID = ArchetypeUID;
-            __dirty = true;
+            e.OwnerArchetypeUid = ArchetypeUid;
+            _dirty = true;
         }
 
         /// <summary>
@@ -95,7 +97,7 @@ namespace JECS.Core
                 if (e == null || e.UID != uid) continue;
 
                 EntityRefs[i] = null;
-                __dirty = true;
+                _dirty = true;
                 return;
             }
         }

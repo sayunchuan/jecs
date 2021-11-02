@@ -6,40 +6,31 @@ namespace JECS.Core
         /// 世界实例引用
         /// </summary>
 #if UNITY_EDITOR
-        public JWorld _W { get; private set; }
+        public JWorld w { get; private set; }
 #else
-        public JWorld _W;
+        public JWorld w;
 #endif
 
-        public UInt256 needArchetype;
-
-        public virtual void SetWorld(JWorld w)
+        internal void SetWorld(JWorld w)
         {
-            _W = w;
+            this.w = w;
+            OnBindWord();
         }
+
+        protected abstract void OnBindWord();
 
         public abstract void OnInit();
 
         /// <summary>
-        /// 获取系统默认所需组件类型所构实体UID迭代器
+        /// 获取指定组件掩码对应实体的迭代器
         /// </summary>
-        /// <returns></returns>
-        protected EIterator _CacheUIDIterator()
-        {
-            return _W.EntityIte(needArchetype);
-        }
-
-        /// <summary>
-        /// 获取指定组件掩码对应实体UID迭代器
-        /// </summary>
-        /// <returns></returns>
         protected EIterator _CacheUIDIterator(UInt256 needArchetypes)
         {
-            return _W.EntityIte(needArchetypes);
+            return w.EntityIte(needArchetypes);
         }
 
         public abstract void Tick(TickParam param);
 
-        public abstract void OnRelease();
+        public abstract void OnClear();
     }
 }

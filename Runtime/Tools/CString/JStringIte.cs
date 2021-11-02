@@ -2,12 +2,12 @@ using System;
 
 namespace JECS.Tools
 {
-    public struct CStringIte
+    public struct JStringIte
     {
         /// <summary>
         /// 目标字符串
         /// </summary>
-        private CString s;
+        private JString s;
 
         /// <summary>
         /// 分隔选项
@@ -24,7 +24,7 @@ namespace JECS.Tools
 
         private int currIndex;
 
-        public CStringIte(CString str, char separator, StringSplitOptions options = StringSplitOptions.None)
+        public JStringIte(JString str, char separator, StringSplitOptions options = StringSplitOptions.None)
         {
             s = str;
             opt = options;
@@ -34,7 +34,7 @@ namespace JECS.Tools
             currIndex = -1;
         }
 
-        public CString Current => s.Subcstring(b + 1, e - b - 1);
+        public JString Current => s.Subcstring(b + 1, e - b - 1);
 
         public bool MoveNext()
         {
@@ -62,7 +62,7 @@ namespace JECS.Tools
         /// <summary>
         /// 以数组下标形式读取，但是仅能够正向读取数组内元素
         /// </summary>
-        public CString this[int id]
+        public JString this[int id]
         {
             get
             {

@@ -14,10 +14,10 @@ namespace JECS.Core
 
         public Time()
         {
-            Release();
+            Clear();
         }
 
-        public void Release()
+        public void Clear()
         {
             Now = 0;
             Frame = 0;

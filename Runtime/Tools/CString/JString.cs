@@ -2,7 +2,7 @@ using System;
 
 namespace JECS.Tools
 {
-    public struct CString
+    public struct JString
     {
         private string str;
         private readonly int off;
@@ -11,11 +11,11 @@ namespace JECS.Tools
 
         public int Length => len;
 
-        public CString(string m) : this(m, 0, m.Length)
+        public JString(string m) : this(m, 0, m.Length)
         {
         }
 
-        public CString(string m, int off, int len)
+        public JString(string m, int off, int len)
         {
             str = m;
             this.off = off;
@@ -28,26 +28,26 @@ namespace JECS.Tools
         /// <summary>
         /// 分隔字符串，并返回分隔符位置，若未分隔则返回-1
         /// </summary>
-        public int Split(char separator, out CString first, out CString other)
+        public int Split(char separator, out JString first, out JString other)
         {
             for (int i = 0, index = off; i < len; i++, index++)
             {
                 if (str[index] == separator)
                 {
-                    first = new CString(str, off, i);
-                    other = new CString(str, index + 1, len - i - 1);
+                    first = new JString(str, off, i);
+                    other = new JString(str, index + 1, len - i - 1);
                     return i;
                 }
             }
 
-            first = new CString(str, off, len);
-            other = new CString("", 0, 0);
+            first = new JString(str, off, len);
+            other = new JString("", 0, 0);
             return -1;
         }
 
-        public CStringIte Split(char separator, StringSplitOptions options = StringSplitOptions.None)
+        public JStringIte Split(char separator, StringSplitOptions options = StringSplitOptions.None)
         {
-            return new CStringIte(this, separator, options);
+            return new JStringIte(this, separator, options);
         }
 
         public bool StartsWith(string value)
@@ -65,7 +65,7 @@ namespace JECS.Tools
             return true;
         }
 
-        public bool StartsWith(CString value)
+        public bool StartsWith(JString value)
         {
             if (len < value.Length) return false;
 
@@ -95,7 +95,7 @@ namespace JECS.Tools
             return true;
         }
 
-        public bool EndsWith(CString value)
+        public bool EndsWith(JString value)
         {
             if (len < value.Length) return false;
 
@@ -120,45 +120,45 @@ namespace JECS.Tools
             return str.Substring(startIndex + off, length);
         }
 
-        public CString Subcstring(int startIndex)
+        public JString Subcstring(int startIndex)
         {
-            return new CString(str, off + startIndex, len - startIndex);
+            return new JString(str, off + startIndex, len - startIndex);
         }
 
-        public CString Subcstring(int startIndex, int length)
+        public JString Subcstring(int startIndex, int length)
         {
-            return new CString(str, startIndex + off, length);
+            return new JString(str, startIndex + off, length);
         }
 
-        public CString Trim()
+        public JString Trim()
         {
             return TrimEnd().TrimStart();
         }
 
-        public CString TrimStart()
+        public JString TrimStart()
         {
             for (int i = off, imax = off + len; i < imax; i++)
             {
                 if (str[i] != ' ')
                 {
-                    return new CString(str, i, len - i + off);
+                    return new JString(str, i, len - i + off);
                 }
             }
 
-            return new CString(str, off + len - 1, 0);
+            return new JString(str, off + len - 1, 0);
         }
 
-        public CString TrimEnd()
+        public JString TrimEnd()
         {
             for (int i = off + len - 1; i >= off; i--)
             {
                 if (str[i] != ' ')
                 {
-                    return new CString(str, off, i - off + 1);
+                    return new JString(str, off, i - off + 1);
                 }
             }
 
-            return new CString(str, off, 0);
+            return new JString(str, off, 0);
         }
 
         public int IndexOf(char value) => IndexOf(value, 0, Length);
@@ -178,7 +178,7 @@ namespace JECS.Tools
                 : str.IndexOf(value, startIndex + off, count);
         }
 
-        public static bool SamePrefix(CString s1, CString s2, out CString prefix)
+        public static bool SamePrefix(JString s1, JString s2, out JString prefix)
         {
             int minLength = s1.Length < s2.Length ? s1.Length : s2.Length;
             for (int i = 0; i < minLength; i++)
@@ -187,7 +187,7 @@ namespace JECS.Tools
                 {
                     if (i == 0)
                     {
-                        prefix = new CString("", 0, 0);
+                        prefix = new JString("", 0, 0);
                         return false;
                     }
 
@@ -200,7 +200,7 @@ namespace JECS.Tools
             return true;
         }
 
-        public static bool ValidParamName(CString s)
+        public static bool ValidParamName(JString s)
         {
             if (s.len <= 0) return false;
 
@@ -210,22 +210,22 @@ namespace JECS.Tools
 
         #region operator
 
-        public static implicit operator string(CString x)
+        public static implicit operator string(JString x)
         {
             return x.ToString();
         }
 
-        public static implicit operator CString(string x)
+        public static implicit operator JString(string x)
         {
-            return new CString(x);
+            return new JString(x);
         }
 
-        public static bool operator ==(CString a1, CString a2)
+        public static bool operator ==(JString a1, JString a2)
         {
             return a1.Equals(a2);
         }
 
-        public static bool operator !=(CString a1, CString a2)
+        public static bool operator !=(JString a1, JString a2)
         {
             if (a1.Length != a2.Length)
             {
@@ -243,24 +243,24 @@ namespace JECS.Tools
             return false;
         }
 
-        public static bool operator ==(CString a1, string a2)
+        public static bool operator ==(JString a1, string a2)
         {
-            return a2 != null && a1 == new CString(a2);
+            return a2 != null && a1 == new JString(a2);
         }
 
-        public static bool operator !=(CString a1, string a2)
+        public static bool operator !=(JString a1, string a2)
         {
-            return a2 == null || a1 != new CString(a2);
+            return a2 == null || a1 != new JString(a2);
         }
 
-        public static bool operator ==(string a1, CString a2)
+        public static bool operator ==(string a1, JString a2)
         {
-            return a1 != null && a2 == new CString(a1);
+            return a1 != null && a2 == new JString(a1);
         }
 
-        public static bool operator !=(string a1, CString a2)
+        public static bool operator !=(string a1, JString a2)
         {
-            return a1 == null || a2 != new CString(a1);
+            return a1 == null || a2 != new JString(a1);
         }
 
         #endregion
@@ -268,11 +268,11 @@ namespace JECS.Tools
         public override bool Equals(object obj)
         {
             if (obj == null) return false;
-            if (obj is CString chs) return Equals(chs);
+            if (obj is JString chs) return Equals(chs);
             return false;
         }
 
-        public bool Equals(CString other)
+        public bool Equals(JString other)
         {
             if (Length != other.Length) return false;
 
@@ -677,22 +677,22 @@ namespace JECS.Tools
 
         public static int Parse_Byte(string str)
         {
-            return new CString(str).ParseByte();
+            return new JString(str).ParseByte();
         }
 
         public static int Parse_Int32(string str)
         {
-            return new CString(str).ParseInt32();
+            return new JString(str).ParseInt32();
         }
 
         public static long Parse_Int64(string str)
         {
-            return new CString(str).ParseInt64();
+            return new JString(str).ParseInt64();
         }
 
         public static double Parse_Double(string str)
         {
-            return new CString(str).ParseDouble();
+            return new JString(str).ParseDouble();
         }
 
         #endregion

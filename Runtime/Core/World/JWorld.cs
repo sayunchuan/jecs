@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 
 namespace JECS.Core
 {
@@ -8,27 +7,27 @@ namespace JECS.Core
         /// <summary>
         /// 实体实例池
         /// </summary>
-        private Queue<JEntity> __entityPool = new Queue<JEntity>();
+        private readonly JQueue<JEntity> _entityPool = new JQueue<JEntity>();
 
         /// <summary>
         /// 实体列表
         /// </summary>
-        private JBlockArray<JEntity> __entitys = new JBlockArray<JEntity>();
+        private readonly JBlockArray<JEntity> _entitys = new JBlockArray<JEntity>();
 
         /// <summary>
         /// 实体删除锁定集合，用于锁定实体的删除操作仅执行一次
         /// </summary>
-        private JHashSet_Int32 __entityDeleteLock = new JHashSet_Int32();
+        private readonly JHashSet_Int32 _entityDeleteLock = new JHashSet_Int32();
 
         /// <summary>
         /// 组件实例池
         /// </summary>
-        private JCompPool[] __compCachePools = new JCompPool[8];
+        private JCompPool[] _compCachePools;
 
         /// <summary>
         /// 系统队列，依序执行
         /// </summary>
-        private List<JSystem> __systems = new List<JSystem>();
+        private readonly JList<JSystem> _systems = new JList<JSystem>();
 
         /// <summary>
         /// 该系统下的组件数量，用于生成指定数量的组件数组与组件池数组
@@ -38,32 +37,32 @@ namespace JECS.Core
         /// <summary>
         /// 原型管理
         /// </summary>
-        public ArchetypeMgr ArchetypeMgr = new ArchetypeMgr();
+        public readonly ArchetypeMgr ArchetypeMgr = new ArchetypeMgr();
 
         /// <summary>
         /// 日志管理
         /// </summary>
-        public JLogMgr logMgr = new JLogMgr();
+        public readonly JLogMgr LogMgr = new JLogMgr();
 
         /// <summary>
         /// 世界时间
         /// </summary>
-        public Time Time = new Time();
+        public readonly Time Time = new Time();
 
         public JWorld()
         {
-            __compCachePools = new JCompPool[CompNum];
+            _compCachePools = new JCompPool[CompNum];
         }
 
         /// <summary>
-        /// 基础初始化，运行前执行
+        /// 基础初始化，ECS系统运行前执行
         /// </summary>
-        public virtual void InitBase()
+        public virtual void Init()
         {
             // 初始化所有系统，供系统调用新数据进行运行配置
-            for (int i = 0, imax = __systems.Count; i < imax; i++)
+            for (int i = 0, imax = _systems.Count; i < imax; i++)
             {
-                var s = __systems[i];
+                var s = _systems[i];
                 s.OnInit();
             }
         }
@@ -71,60 +70,66 @@ namespace JECS.Core
         /// <summary>
         /// 释放资源，将世界恢复到初始的样子，但是对各缓存实例则保留
         /// </summary>
-        public virtual void Release()
+        public virtual void Clear()
         {
             // recover entity and component
-            for (int i = 0, imax = __entitys.Count; i < imax; i++)
+            for (int i = 0, imax = _entitys.Count; i < imax; i++)
             {
-                var e = __entitys[i];
+                var e = _entitys[i];
                 if (e == null) continue;
                 ReleaseE(e);
             }
 
-            __entitys.Clear();
-            __entityDeleteLock.Clear();
+            _entitys.Clear();
+            _entityDeleteLock.Clear();
 
             // recover system
-            for (int i = 0, imax = __systems.Count; i < imax; i++)
+            for (int i = 0, imax = _systems.Count; i < imax; i++)
             {
-                var s = __systems[i];
-                s.OnRelease();
+                var s = _systems[i];
+                s.OnClear();
             }
 
             // reset archetype manager
-            ArchetypeMgr.Release();
+            ArchetypeMgr.Clear();
 
             // reset JLogMgr
-            logMgr.Release();
+            LogMgr.Clear();
 
             // 重置时间
-            Time.Release();
+            Time.Clear();
         }
 
         #region protected Methods
 
+        /// <summary>
+        /// 添加组件池，应于世界实例生成时调用，将所有类型的组件池加入世界中
+        /// </summary>
         protected void _AddCompPool(int compId, JCompPool pool)
         {
             pool.CompId = compId;
-            if (compId >= __compCachePools.Length)
+            if (compId >= _compCachePools.Length)
             {
-                int wantLen = __compCachePools.Length;
+                int wantLen = _compCachePools.Length;
                 while (wantLen <= compId)
                 {
                     wantLen <<= 1;
                 }
 
                 JCompPool[] tmp = new JCompPool[wantLen];
-                Array.Copy(__compCachePools, 0, tmp, 0, __compCachePools.Length);
-                __compCachePools = tmp;
+                Array.Copy(_compCachePools, 0, tmp, 0, _compCachePools.Length);
+                _compCachePools = tmp;
             }
 
-            __compCachePools[compId] = pool;
+            _compCachePools[compId] = pool;
         }
 
+        /// <summary>
+        /// 添加系统，应于世界实例生成时调用，将所有系统加入世界中
+        /// </summary>
         protected void _AddSystem(JSystem sys)
         {
-            __systems.Add(sys);
+            _systems.Add(sys);
             sys.SetWorld(this);
         }
 
@@ -132,73 +137,93 @@ namespace JECS.Core
 
         #region Internal Methods
 
+        /// <summary>
+        /// 生成组件
+        /// </summary>
         internal JComp SpawnC(int compId, int uid)
         {
-            return __compCachePools[compId].Spawn(this, uid);
+            return _compCachePools[compId].Spawn(this, uid);
         }
 
         /// <summary>
-        /// 释放组件资源，按照组件类型入池
+        /// 释放组件资源，按照组件类型入池，并清理组件内容
         /// </summary>
         internal void ReleaseC(JComp comp)
         {
-            __compCachePools[comp.CompId].Release(this, comp);
+            _compCachePools[comp.CompId].Release(this, comp);
         }
 
         /// <summary>
-        /// 释放实体资源，并将实体实例入池
+        /// 释放实体资源，并将实体实例入池，内部无需处理log系统
         /// </summary>
         internal void ReleaseE(JEntity entity)
         {
             int uid = entity.UID;
-            entity.OnRelease(this);
-            __entitys.Release(uid);
-            __entityPool.Enqueue(entity);
+            entity.OnClear(this);
+            _entitys.Release(uid);
+            _entityPool.Enqueue(entity);
         }
 
         #endregion
 
         #region Public Methods
 
+        /// <summary>
+        /// 获取新实体
+        /// </summary>
         public JEntity NewE()
         {
-            JEntity res = __entityPool.Count > 0 ? __entityPool.Dequeue() : new JEntity(CompNum);
-            res.UID = __entitys.Count;
-            __entitys.Add(res);
-            logMgr.AddEntity(res.UID);
+            JEntity res = _entityPool.Count > 0 ? _entityPool.Dequeue() : new JEntity(CompNum);
+            res.UID = _entitys.Count;
+            _entitys.Add(res);
+            LogMgr.AddEntity(res.UID);
             return res;
         }
 
+        /// <summary>
+        /// 加载指定uid实体
+        /// </summary>
         public JEntity GetE(int uid)
         {
-            return uid >= 0 && uid < __entitys.Count ? __entitys[uid] : null;
+            return uid >= 0 && uid < _entitys.Count ? _entitys[uid] : null;
         }
 
+        /// <summary>
+        /// 删除指定实体
+        /// </summary>
         public virtual void DelE(int uid)
         {
-            JEntity e = __entitys[uid];
+            JEntity e = _entitys[uid];
             if (e == null) return;
 
             // 删除实体已被锁定，则跳过删除操作
-            if (__entityDeleteLock.Contains(uid)) return;
+            if (_entityDeleteLock.Contains(uid)) return;
 
             // 锁定实体
-            __entityDeleteLock.Add(uid);
+            _entityDeleteLock.Add(uid);
 
             // 删除实体核心操作
             e.OnDel(this);
-            __entitys.Release(uid);
-            __entityPool.Enqueue(e);
+            _entitys.Release(uid);
+            _entityPool.Enqueue(e);
 
             // 解锁实体
-            __entityDeleteLock.Remove(uid);
+            _entityDeleteLock.Remove(uid);
         }
 
+        /// <summary>
+        /// 删除指定组件
+        /// </summary>
         public virtual bool DelC(JEntity entity, int compId)
         {
             return entity.DelC(this, compId);
         }
 
+        /// <summary>
+        /// 获取指定原型的实体迭代器
+        /// </summary>
+        /// <param name="archetype"></param>
+        /// <returns></returns>
         public EIterator EntityIte(UInt256 archetype)
         {
             return new EIterator(this, archetype);
@@ -214,22 +239,26 @@ namespace JECS.Core
             e.UnlinkC(this, compId);
         }
 
+        /// <summary>
+        /// ECS系统心跳
+        /// </summary>
+        /// <param name="p"></param>
         public virtual void Tick(TickParam p)
         {
             // 更新ECS帧数与世界时间
             Time.Tick(p.DeltaMilliseconds);
 
             // 系统优先运行
-            for (int i = 0, imax = __systems.Count; i < imax; i++)
+            for (int i = 0, imax = _systems.Count; i < imax; i++)
             {
-                __systems[i].Tick(p);
+                _systems[i].Tick(p);
             }
 
             // 原型管理更新
             ArchetypeMgr.ExeDirty();
 
             // 清除通知中心记录
-            logMgr.Switch();
+            LogMgr.Switch();
         }
 
         #endregion

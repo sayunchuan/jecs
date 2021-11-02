@@ -348,12 +348,12 @@ namespace JECS.Tools
             return res;
         }
 
-        public static FPDouble Parse(CString s)
+        public static FPDouble Parse(JString s)
         {
             return s.ParseDouble();
         }
 
-        public static bool TryParse(CString s, out FPDouble n)
+        public static bool TryParse(JString s, out FPDouble n)
         {
             double dn = 0;
             bool res = s.TryParseDouble(out dn);

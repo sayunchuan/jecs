@@ -1,26 +1,27 @@
 using System;
-using System.Collections.Generic;
 
 namespace JECS.Core
 {
     public class JCompPool
     {
+        /// <summary>
+        /// 组件类型id
+        /// </summary>
         public int CompId;
 
         /// <summary>
-        /// 组件实例池
+        /// 当前类型组件实例池
         /// </summary>
-        private Queue<JComp> __pools;
+        private readonly JQueue<JComp> _pools = new JQueue<JComp>();
 
         /// <summary>
         /// 组件生成方法委托
         /// </summary>
-        private Func<JComp> __spawnFunc;
+        private readonly Func<JComp> _spawnFunc;
 
         public JCompPool(Func<JComp> spawnFunc)
         {
-            __pools = new Queue<JComp>();
-            __spawnFunc = spawnFunc;
+            _spawnFunc = spawnFunc;
         }
 
         /// <summary>
@@ -28,18 +29,18 @@ namespace JECS.Core
         /// </summary>
         internal JComp Spawn(JWorld w, int uid)
         {
-            JComp res = __pools.Count > 0 ? __pools.Dequeue() : __spawnFunc();
-            res.OnLoad(w, uid);
+            JComp res = _pools.Count > 0 ? _pools.Dequeue() : _spawnFunc();
+            res.InternalOnLoad(w, uid);
             return res;
         }
 
         /// <summary>
-        /// 释放组件资源
+        /// 释放组件实例，并将其入池
         /// </summary>
         internal void Release(JWorld w, JComp item)
         {
-            item.OnRelease(w);
-            __pools.Enqueue(item);
+            item.InternalOnClear(w);
+            _pools.Enqueue(item);
         }
 
         public override string ToString()

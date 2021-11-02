@@ -1,116 +1,145 @@
-using System.Collections.Generic;
-
 namespace JECS.Core
 {
     public class ArchetypeMgr
     {
-        private Queue<Archetype> __archetypeInsPool = new Queue<Archetype>();
-        private Queue<JLink<Archetype>> __linkInsPool = new Queue<JLink<Archetype>>();
+        // -------------------------- 原型实例与原型链实例的缓存池 -----------------------------
+
+        private readonly JQueue<Archetype> _archetypeInsPool = new JQueue<Archetype>();
+        private readonly JQueue<JLink<Archetype>> _linkInsPool = new JQueue<JLink<Archetype>>();
+
+        // -------------------------- 原型数据 -----------------------------
 
         /// <summary>
         /// 原型核心数据
         /// </summary>
-        internal JArray<Archetype> archetypes = new JArray<Archetype>();
+        internal readonly JArray<Archetype> Archetypes = new JArray<Archetype>();
 
         /// <summary>
         /// 原型核心数据的索引表
         /// </summary>
-        private JDictionary<UInt256, int> __archetypesTable = new JDictionary<UInt256, int>(UInt256Compare.Default);
+        private readonly JDictionary<UInt256, int> _archetypesTable =
+            new JDictionary<UInt256, int>(UInt256Compare.Default);
+
+        // -------------------------- 原型链数据 -----------------------------
 
         /// <summary>
         /// 原型链核心数据
         /// 使用过的原型，会将所有包含指定原型的原始原型数据链接并存储
         /// </summary>
-        private JArray<JLink<Archetype>> __cacheArchetypeLinks = new JArray<JLink<Archetype>>();
+        private readonly JArray<JLink<Archetype>> _cacheArchetypeLinks = new JArray<JLink<Archetype>>();
 
         /// <summary>
         /// 原型链核心数据对应的原型类型
         /// </summary>
-        private JArray<UInt256> __cacheArchetypeNote = new JArray<UInt256>();
+        private readonly JArray<UInt256> _cacheArchetypeNote = new JArray<UInt256>();
 
         /// <summary>
         /// 原型链数据索引
         /// </summary>
-        private JDictionary<UInt256, int> __cacheArchetypeTable = new JDictionary<UInt256, int>(UInt256Compare.Default);
+        private readonly JDictionary<UInt256, int> _cacheArchetypeTable =
+            new JDictionary<UInt256, int>(UInt256Compare.Default);
 
+        /// <summary>
+        /// 实体变化时调用，更新实体的原型归属
+        /// </summary>
         internal void OnEChange(JEntity e)
         {
-            Archetype at = __loadArchetype(e.OwnerArchetypeUID);
-            if (at != null)
-            {
-                at.RemoveEntity(e.UID);
-            }
+            // 将实体从原属原型内移除
+            Archetype at = _loadArchetype(e.OwnerArchetypeUid);
+            at?.RemoveEntity(e.UID);
 
-            at = __loadArchetype(e.Archetype);
+            // 添加实体至新属原型内
+            at = _loadArchetype(e.Archetype);
             at.AddEntity(e);
         }
 
-        private Archetype __loadArchetype(int archetypeUID)
+        /// <summary>
+        /// 使用原型唯一ID加载原型实例
+        /// </summary>
+        private Archetype _loadArchetype(int archetypeUID)
         {
-            return archetypeUID < archetypes.Count && archetypeUID >= 0 ? archetypes[archetypeUID] : null;
+            return archetypeUID < Archetypes.Count && archetypeUID >= 0 ? Archetypes[archetypeUID] : null;
         }
 
-        private Archetype __loadArchetype(UInt256 archetype)
+        /// <summary>
+        /// 使用原型类型加载原型实例
+        /// </summary>
+        private Archetype _loadArchetype(UInt256 archetype)
         {
             int index;
-            if (__archetypesTable.TryGetValue(archetype, out index))
+            if (_archetypesTable.TryGetValue(archetype, out index))
             {
-                return archetypes[index];
+                return Archetypes[index];
             }
 
-            return __NewArchetype(archetype);
+            return _NewArchetype(archetype);
         }
 
-        private Archetype __NewArchetype(UInt256 archetype)
+        /// <summary>
+        /// 创建指定原型的实例
+        /// </summary>
+        private Archetype _NewArchetype(UInt256 archetype)
         {
-            Archetype res = __archetypeInsPool.Count > 0 ? __archetypeInsPool.Dequeue() : new Archetype();
-            res.ArchetypeUID = archetypes.Count;
-            res.Type = archetype;
-            archetypes.Add(res);
-            __archetypesTable[archetype] = res.ArchetypeUID;
+            // 新建实例
+            Archetype res = _archetypeInsPool.Count > 0 ? _archetypeInsPool.Dequeue() : new Archetype();
 
-            for (int i = 0, imax = __cacheArchetypeNote.Count; i < imax; i++)
+            // 将实例的uid与实例数组下标关联
+            res.ArchetypeUid = Archetypes.Count;
+            res.Type = archetype;
+            Archetypes.Add(res);
+
+            // 更新原型索引表
+            _archetypesTable[archetype] = res.ArchetypeUid;
+
+            // 刷新原型链
+            for (int i = 0, imax = _cacheArchetypeNote.Count; i < imax; i++)
             {
-                if (archetype.Contain(__cacheArchetypeNote[i]))
+                if (archetype.Contain(_cacheArchetypeNote[i]))
                 {
-                    __cacheArchetypeLinks[i].AddLast(res);
+                    _cacheArchetypeLinks[i].AddLast(res);
                 }
             }
 
+            // 返回新原型实例
             return res;
         }
 
+        /// <summary>
+        /// 加载指定原型类型的原型链
+        /// </summary>
         internal JLink<Archetype> LoadCache(UInt256 archetype)
         {
+            // 由已缓存原型链中搜索目标
             int index;
-            if (__cacheArchetypeTable.TryGetValue(archetype, out index))
+            if (_cacheArchetypeTable.TryGetValue(archetype, out index))
             {
-                return __cacheArchetypeLinks[index];
+                return _cacheArchetypeLinks[index];
             }
 
-            __cacheArchetypeTable[archetype] = __cacheArchetypeNote.Count;
-            __cacheArchetypeNote.Add(archetype);
-            JLink<Archetype> link = __linkInsPool.Count > 0 ? __linkInsPool.Dequeue() : new JLink<Archetype>();
-            __cacheArchetypeLinks.Add(link);
+            // 已有数据中无目标，则新建原型链并缓存
+            _cacheArchetypeTable[archetype] = _cacheArchetypeNote.Count;
+            _cacheArchetypeNote.Add(archetype);
+            JLink<Archetype> link = _linkInsPool.Count > 0 ? _linkInsPool.Dequeue() : new JLink<Archetype>();
+            _cacheArchetypeLinks.Add(link);
 
-            for (int i = 0, imax = archetypes.Count; i < imax; i++)
+            for (int i = 0, imax = Archetypes.Count; i < imax; i++)
             {
-                if (archetypes[i].Type.Contain(archetype))
+                if (Archetypes[i].Type.Contain(archetype))
                 {
-                    link.AddLast(archetypes[i]);
+                    link.AddLast(Archetypes[i]);
                 }
             }
 
             return link;
         }
 
+        /// <summary>
+        /// 实体被删除时调用，删除实体的原型归属
+        /// </summary>
         internal void OnEDel(JEntity e)
         {
-            Archetype at = __loadArchetype(e.OwnerArchetypeUID);
-            if (at != null)
-            {
-                at.RemoveEntity(e.UID);
-            }
+            Archetype at = _loadArchetype(e.OwnerArchetypeUid);
+            at?.RemoveEntity(e.UID);
         }
 
         /// <summary>
@@ -118,40 +147,43 @@ namespace JECS.Core
         /// </summary>
         internal void ExeDirty()
         {
-            for (int i = 0, imax = archetypes.Count; i < imax; i++)
+            for (int i = 0, imax = Archetypes.Count; i < imax; i++)
             {
-                archetypes[i].ExeDirty();
+                Archetypes[i].ExeDirty();
             }
         }
 
-        // 原型管理器内部资源释放
-        public void Release()
+        /// <summary>
+        /// 原型管理器内部资源释放
+        /// </summary>
+        internal void Clear()
         {
-            // 原型核心数据重置并入池
-            for (int i = 0, imax = archetypes.Count; i < imax; i++)
+            // 原型核心数据重置并使实例入池
+            for (int i = 0, imax = Archetypes.Count; i < imax; i++)
             {
-                Archetype a = archetypes[i];
+                Archetype a = Archetypes[i];
                 if (a == null) continue;
-                a.Reset();
-                __archetypeInsPool.Enqueue(a);
+
+                a.Clear();
+                _archetypeInsPool.Enqueue(a);
             }
 
             // 清空原型数据引用与查询表
-            archetypes.Clear();
-            __archetypesTable.Clear();
+            Archetypes.Clear();
+            _archetypesTable.Clear();
 
             // 原型链实例入池
-            for (int i = 0, imax = __cacheArchetypeLinks.Count; i < imax; i++)
+            for (int i = 0, imax = _cacheArchetypeLinks.Count; i < imax; i++)
             {
-                JLink<Archetype> link = __cacheArchetypeLinks[i];
+                JLink<Archetype> link = _cacheArchetypeLinks[i];
                 link.Clear();
-                __linkInsPool.Enqueue(link);
+                _linkInsPool.Enqueue(link);
             }
 
             // 清空原型链、原型链对应数据、原型链查询表
-            __cacheArchetypeLinks.Clear();
-            __cacheArchetypeNote.Clear();
-            __cacheArchetypeTable.Clear();
+            _cacheArchetypeLinks.Clear();
+            _cacheArchetypeNote.Clear();
+            _cacheArchetypeTable.Clear();
         }
     }
 }
