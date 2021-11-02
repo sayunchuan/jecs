@@ -1,0 +1,18 @@
+{
+    "name": "JECS.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:19d00decee6bf41bbae70ea6500f4fcf"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
