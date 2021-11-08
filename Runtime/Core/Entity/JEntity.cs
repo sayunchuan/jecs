@@ -156,22 +156,24 @@ namespace JECS.Core
         #endregion
 
         /// <summary>
-        /// 实体与指定类型组件脱钩，若实体不包含该组件则不发生任何行为
+        /// 实体与指定类型组件脱钩，若实体不包含该组件则返回false
         /// </summary>
-        public void UnlinkC(JWorld w, int compId)
+        public bool UnlinkC(JWorld w, int compId)
         {
-            if (!Archetype.Del(compId)) return;
+            if (!Archetype.Del(compId)) return false;
             w.ArchetypeMgr.OnEChange(this);
+            return true;
         }
 
         /// <summary>
-        /// 实体与指定类型组件重新挂钩，若实体内部不包含该组件则添加
+        /// 实体与指定类型组件重新挂钩，若实体内部不包含该组件或该组件已绑定则返回false
         /// </summary>
-        public void RelinkC(JWorld w, int compId)
+        public bool RelinkC(JWorld w, int compId)
         {
-            if (!Archetype.Add(compId)) return;
-            if (_comps[compId] == null) __RealAddComp(w, compId);
+            if (_comps[compId] == null) return false;
+            if (!Archetype.Add(compId)) return false;
             w.ArchetypeMgr.OnEChange(this);
+            return true;
         }
 
         /// <summary>
@@ -231,7 +233,7 @@ namespace JECS.Core
             {
                 var comp = _comps[i];
                 if (comp == null) continue;
-                
+
                 w.ReleaseC(comp);
                 _comps[i] = null;
             }

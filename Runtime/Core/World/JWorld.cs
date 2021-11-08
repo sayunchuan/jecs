@@ -222,27 +222,30 @@ namespace JECS.Core
         /// <summary>
         /// 获取指定原型的实体迭代器
         /// </summary>
-        /// <param name="archetype"></param>
-        /// <returns></returns>
         public EIterator EntityIte(UInt256 archetype)
         {
             return new EIterator(this, archetype);
         }
 
-        public void RelinkComp(JEntity e, int compId)
+        /// <summary>
+        /// 解绑组件，并返回解绑成功标识
+        /// </summary>
+        public bool UnlinkComp(JEntity e, int compId)
         {
-            e.RelinkC(this, compId);
+            return e.UnlinkC(this, compId);
         }
 
-        public void UnlinkComp(JEntity e, int compId)
+        /// <summary>
+        /// 重绑组件，并返回重绑成功标识
+        /// </summary>
+        public bool RelinkComp(JEntity e, int compId)
         {
-            e.UnlinkC(this, compId);
+            return e.RelinkC(this, compId);
         }
 
         /// <summary>
         /// ECS系统心跳
         /// </summary>
-        /// <param name="p"></param>
         public virtual void Tick(TickParam p)
         {
             // 更新ECS帧数与世界时间
